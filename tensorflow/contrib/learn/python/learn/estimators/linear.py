@@ -32,6 +32,7 @@ from tensorflow.contrib import metrics as metrics_lib
 from tensorflow.contrib.framework.python.ops import variables as contrib_variables
 from tensorflow.contrib.layers.python.layers import target_column
 from tensorflow.contrib.learn.python.learn import evaluable
+from tensorflow.contrib.learn.python.learn import metric_spec
 from tensorflow.contrib.learn.python.learn import trainable
 from tensorflow.contrib.learn.python.learn.estimators import dnn_linear_combined
 from tensorflow.contrib.learn.python.learn.estimators import estimator
@@ -70,7 +71,7 @@ def _wrap_metric(metric):
     targets = math_ops.cast(targets, preds.dtype)
     return metric(preds, targets)
 
-  def wrapped_weights(preds, targets, weights):
+  def wrapped_weights(preds, targets, weights=None):
     targets = math_ops.cast(targets, preds.dtype)
     if weights is not None:
       weights = array_ops.reshape(math_ops.to_float(weights), shape=(-1,))
@@ -129,7 +130,7 @@ def _add_bias_column(feature_columns, columns_to_tensors, bias_variable,
 
 
 def _log_loss_with_two_classes(logits, target):
-  check_shape_op = logging_ops.Assert(
+  check_shape_op = control_flow_ops.Assert(
       math_ops.less_equal(array_ops.rank(target), 2),
       ["target's shape should be either [batch_size, 1] or [batch_size]"])
   with ops.control_dependencies([check_shape_op]):
@@ -139,7 +140,7 @@ def _log_loss_with_two_classes(logits, target):
 
 
 def _softmax_cross_entropy_loss(logits, target):
-  check_shape_op = logging_ops.Assert(
+  check_shape_op = control_flow_ops.Assert(
       math_ops.less_equal(array_ops.rank(target), 2),
       ["target's shape should be either [batch_size, 1] or [batch_size]"])
   with ops.control_dependencies([check_shape_op]):
@@ -148,7 +149,7 @@ def _softmax_cross_entropy_loss(logits, target):
 
 
 def _hinge_loss(logits, target):
-  check_shape_op = logging_ops.Assert(
+  check_shape_op = control_flow_ops.Assert(
       math_ops.less_equal(array_ops.rank(target), 2),
       ["target's shape should be either [batch_size, 1] or [batch_size]"])
   with ops.control_dependencies([check_shape_op]):
@@ -264,6 +265,7 @@ def sdca_classifier_model_fn(features, targets, mode, params):
   loss = None
   if mode != estimator.ModeKeys.INFER:
     loss = math_ops.reduce_mean(loss_fn(logits, targets), name="loss")
+    logging_ops.scalar_summary("loss", loss)
 
   train_op = None
   if mode == estimator.ModeKeys.TRAIN:
@@ -347,8 +349,6 @@ class LinearClassifier(evaluable.Evaluable, trainable.Trainable):
       Both features' `value` must be a `SparseTensor`.
     - if `column` is a `RealValuedColumn`, a feature with `key=column.name`
       whose `value` is a `Tensor`.
-    - if `feature_columns` is `None`, then `input` must contains only real
-      valued `Tensor`.
   """
 
   def __init__(self,
@@ -358,7 +358,7 @@ class LinearClassifier(evaluable.Evaluable, trainable.Trainable):
                weight_column_name=None,
                optimizer=None,
                gradient_clip_norm=None,
-               enable_centered_bias=True,
+               enable_centered_bias=None,
                config=None):
     """Construct a `LinearClassifier` estimator object.
 
@@ -390,12 +390,16 @@ class LinearClassifier(evaluable.Evaluable, trainable.Trainable):
     Raises:
       ValueError: if n_classes < 2.
     """
+    if enable_centered_bias is None:
+      enable_centered_bias = True
+      dnn_linear_combined._changing_default_center_bias()  # pylint: disable=protected-access
     self._model_dir = model_dir or tempfile.mkdtemp()
     if n_classes < 2:
       raise ValueError("Classification requires n_classes >= 2")
     self._n_classes = n_classes
     self._feature_columns = feature_columns
     assert self._feature_columns
+    self._weight_column_name = weight_column_name
     self._optimizer = _get_default_optimizer(feature_columns)
     if optimizer:
       self._optimizer = _get_optimizer(optimizer)
@@ -426,8 +430,7 @@ class LinearClassifier(evaluable.Evaluable, trainable.Trainable):
         model_fn=model_fn,
         model_dir=self._model_dir,
         config=config,
-        params=params,
-        weight_column_name=weight_column_name)
+        params=params)
 
   def get_estimator(self):
     return self._estimator
@@ -445,14 +448,26 @@ class LinearClassifier(evaluable.Evaluable, trainable.Trainable):
     """See evaluable.Evaluable."""
     if not metrics:
       metrics = {}
-      metrics[("accuracy", _CLASSES)] = metrics_lib.streaming_accuracy
+      metrics["accuracy"] = metric_spec.MetricSpec(
+          metric_fn=_wrap_metric(metrics_lib.streaming_accuracy),
+          prediction_key=_CLASSES,
+          weight_key=self._weight_column_name)
     if self._n_classes == 2:
       additional_metrics = (
           target_column.get_default_binary_metrics_for_eval([0.5]))
-      additional_metrics = {(name, _LOGISTIC): metric
-                            for name, metric in additional_metrics.items()}
+      additional_metrics = {
+          name: metric_spec.MetricSpec(metric_fn=metric,
+                                       prediction_key=_LOGISTIC,
+                                       weight_key=self._weight_column_name)
+          for name, metric in additional_metrics.items()
+      }
       metrics.update(additional_metrics)
+
+    # TODO(b/31229024): Remove this loop
     for metric_name, metric in metrics.items():
+      if isinstance(metric, metric_spec.MetricSpec):
+        continue
+
       if isinstance(metric_name, tuple):
         if len(metric_name) != 2:
           raise ValueError("Ignoring metric %s. It returned a tuple with len  "
@@ -577,8 +592,6 @@ class LinearRegressor(dnn_linear_combined.DNNLinearCombinedRegressor):
          key=weight column name, value=a `SparseTensor`}
     - if isinstance(column, `RealValuedColumn`):
         key=column.name, value=a `Tensor`
-    - if `feature_columns` is `None`:
-        input must contains only real valued `Tensor`.
   """
 
   def __init__(self,
@@ -587,7 +600,7 @@ class LinearRegressor(dnn_linear_combined.DNNLinearCombinedRegressor):
                weight_column_name=None,
                optimizer=None,
                gradient_clip_norm=None,
-               enable_centered_bias=True,
+               enable_centered_bias=None,
                target_dimension=1,
                config=None):
     """Construct a `LinearRegressor` estimator object.
@@ -616,6 +629,9 @@ class LinearRegressor(dnn_linear_combined.DNNLinearCombinedRegressor):
     Returns:
       A `LinearRegressor` estimator.
     """
+    if enable_centered_bias is None:
+      enable_centered_bias = True
+      dnn_linear_combined._changing_default_center_bias()  # pylint: disable=protected-access
     super(LinearRegressor, self).__init__(
         model_dir=model_dir,
         weight_column_name=weight_column_name,

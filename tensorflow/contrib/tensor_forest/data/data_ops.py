@@ -22,6 +22,7 @@ import threading
 
 from tensorflow.contrib.tensor_forest.python import constants
 
+from tensorflow.python.framework import common_shapes
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import load_library
 from tensorflow.python.framework import ops
@@ -36,20 +37,12 @@ DATA_OPS_FILE = '_data_ops.so'
 _data_ops = None
 _ops_lock = threading.Lock()
 
-ops.NoGradient('SparseValuesToIndices')
-ops.NoGradient('StringToFloat')
+ops.NotDifferentiable('SparseValuesToIndices')
+ops.NotDifferentiable('StringToFloat')
 
 
-@ops.RegisterShape('SparseValuesToIndices')
-def SparseValuesToIndicesShape(op):
-  """Shape function for SparseValuesToIndices Op."""
-  return [op.inputs[0].get_shape(), op.inputs[1].get_shape()]
-
-
-@ops.RegisterShape('StringToFloat')
-def StringToFloatShape(op):
-  """Shape function for StringToFloat Op."""
-  return [op.inputs[0].get_shape()]
+ops.RegisterShape('SparseValuesToIndices')(common_shapes.call_cpp_shape_fn)
+ops.RegisterShape('StringToFloat')(common_shapes.call_cpp_shape_fn)
 
 
 # Workaround for the fact that importing tensorflow imports contrib
@@ -106,8 +99,8 @@ def _ParseSparse(data):
   num_features = len(data)
   offset_bits = int(math.ceil(math.log(num_features, 2)))
 
-  # We condense data to 31 bits, see sparse_values_to_indices.cc
-  offset_increment = int(math.pow(2, 31 - offset_bits))
+  # We condense data to 26 bits, see sparse_values_to_indices.cc
+  offset_increment = int(math.pow(2, 26 - offset_bits))
   offset = 0
 
   sparse_tensors = []
@@ -115,7 +108,8 @@ def _ParseSparse(data):
     if isinstance(data[k], ops.SparseTensor):
       sparse_indices = data[k].indices
       sparse_values = data[k].values
-      new_shape = data[k].shape
+      new_shape = array_ops.concat(
+          0, [array_ops.slice(data[k].shape, [0], [1]), [offset_increment]])
 
       new_indices, new_values = convert_ops.sparse_values_to_indices(
           sparse_indices,
@@ -128,7 +122,6 @@ def _ParseSparse(data):
     sparse_tensors.append(ops.SparseTensor(indices=new_indices,
                                            values=new_values,
                                            shape=new_shape))
-    offset += offset_increment
 
   return (sparse_ops.sparse_concat(1, sparse_tensors),
           [constants.DATA_CATEGORICAL])

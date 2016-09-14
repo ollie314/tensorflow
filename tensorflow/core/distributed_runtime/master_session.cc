@@ -54,9 +54,9 @@ namespace tensorflow {
 namespace {
 // A little bit of per-step state.
 struct PerStepState {
+  bool collect_timeline;
   Microseconds start_micros = Microseconds(0);
   Microseconds end_micros = Microseconds(0);
-  std::vector<StepStats> step_stats;  // per partition
 };
 
 // A session encapsulates a graph computation (resource allocation,
@@ -139,9 +139,6 @@ class MasterSession : public MasterSessionInterface {
   std::unique_ptr<SimpleGraphExecutionState> execution_state_;
   int64 graph_version_;
 
-  int32 steps_since_last_scheduling_ GUARDED_BY(mu_) = 0;
-  int32 scheduling_period_steps_ GUARDED_BY(mu_) = 10;
-
   // We keep a map from a signature of a run request to the
   // ReffedClientGraph the can execute it.  We keep up to one old copy
   // of each ReffedClientGraph around because if it gets deallocated
@@ -179,7 +176,7 @@ class MasterSession : public MasterSessionInterface {
   TF_DISALLOW_COPY_AND_ASSIGN(MasterSession);
 };
 
-// Session wraps ClientGraph in a reference counted object.  This way,
+// Session wraps SimpleClientGraph in a reference counted object.  This way,
 // Session can clear up the cache mapping Run requests to compiled
 // graphs while the compiled graph is still being used.
 //
@@ -522,6 +519,10 @@ Status MasterSession::ReffedClientGraph::RunPartitions(
 
   // Prepares a number of calls to workers. One call per partition.
   ExecutorOpts exec_opts;
+  if (pss->collect_timeline) {
+    exec_opts.set_record_timeline(true);
+  }
+
   const int num = partitions_.size();
   RunManyGraphs calls(num);
 
@@ -597,8 +598,9 @@ Status MasterSession::ReffedClientGraph::RunPartitions(
           break;
         }
       }
-      if (calls.get(i)->resp.has_step_stats()) {
-        pss->step_stats[i].Swap(calls.get(i)->resp.mutable_step_stats());
+      if (pss->collect_timeline && calls.get(i)->resp.has_step_stats()) {
+        resp->mutable_metadata()->mutable_step_stats()->MergeFrom(
+            calls.get(i)->resp.step_stats());
       }
     }
   }
@@ -657,7 +659,6 @@ class CleanupBroadcastHelper {
 };
 
 }  // namespace
-
 
 void MasterSession::ReffedClientGraph::CleanupPartitionsAsync(
     int64 step_id, StatusCallback done) {
@@ -770,6 +771,9 @@ MasterSession::MasterSession(const SessionOptions& opt, const MasterEnv* env,
     }
     num_local_devices++;
   }
+  LOG(INFO) << "Start master session " << handle_
+            << " with config: " << std::endl
+            << session_opts_.config.DebugString();
 }
 
 MasterSession::~MasterSession() {
@@ -952,6 +956,8 @@ Status MasterSession::DoRunWithLocalExecution(CallOptions* opts,
   // step_id for future use.
   const uint64 step_id = (random::New64() & ((1uLL << 56) - 1)) | (1uLL << 56);
   TRACEPRINTF("stepid %llu", step_id);
+
+  pss.collect_timeline = req->options().trace_level() == RunOptions::FULL_TRACE;
 
   TF_RETURN_IF_ERROR(rcg->RunPartitions(env_, step_id, count,
                                         execution_state_.get(), &pss, opts,

@@ -734,22 +734,6 @@ Every time you change the Cuda library paths you need to run this step again bef
 you invoke the bazel build command. For the cuDNN libraries, use '6.5' for R2, '7.0'
 for R3, and '4.0.4' for R4-RC.
 
-#### Build your target with GPU support
-From the root of your source tree, run:
-
-```bash
-$ bazel build -c opt --config=cuda //tensorflow/cc:tutorials_example_trainer
-
-$ bazel-bin/tensorflow/cc/tutorials_example_trainer --use_gpu
-# Lots of output. This tutorial iteratively calculates the major eigenvalue of
-# a 2x2 matrix, on GPU. The last few lines look like this.
-000009/000005 lambda = 2.000000 x = [0.894427 -0.447214] y = [1.788854 -0.894427]
-000006/000001 lambda = 2.000000 x = [0.894427 -0.447214] y = [1.788854 -0.894427]
-000009/000009 lambda = 2.000000 x = [0.894427 -0.447214] y = [1.788854 -0.894427]
-```
-
-Note that "--config=cuda" is needed to enable the GPU support.
-
 #### Known issues
 
 * Although it is possible to build both Cuda and non-Cuda configs under the same
@@ -861,20 +845,20 @@ package :
 
 ```bash
 # Ubuntu/Linux 64-bit:
-$ pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.0.0b2.post2-cp27-none-linux_x86_64.whl
+$ pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.0.0-cp27-none-linux_x86_64.whl
 
 # Mac OS X:
-$ pip install --upgrade https://storage.googleapis.com/tensorflow/mac/protobuf-3.0.0b2.post2-cp27-none-any.whl
+$ pip install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/protobuf-3.0.0-cp27-cp27m-macosx_10_11_x86_64.whl
 ```
 
 and for Python 3 :
 
 ```bash
 # Ubuntu/Linux 64-bit:
-$ pip3 install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.0.0b2.post2-cp34-none-linux_x86_64.whl
+$ pip3 install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.0.0-cp3-none-linux_x86_64.whl
 
 # Mac OS X:
-$ pip3 install --upgrade https://storage.googleapis.com/tensorflow/mac/protobuf-3.0.0b2.post2-cp35-none-any.whl
+$ pip3 install --upgrade https://storage.googleapis.com/tensorflow/mac/cpu/protobuf-3.0.0-cp3-cp3m-macosx_10_11_x86_64.whl
 ```
 
 Install the above package _after_ you have installed TensorFlow via pip, as the

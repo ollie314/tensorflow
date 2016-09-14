@@ -66,9 +66,12 @@ limitations under the License.
 // 10. Deprecate conv3d_backprop_{filter,input} (10jun2016).
 // 11. Deprecate {batch}_self_adjoint_eig (3aug2016).
 // 12. Graph consumers understand the node_def field of FunctionDef (22aug2016).
+// 13. Deprecate multiple batch linear algebra ops (9sep2016).
+// 14. Deprecate batch_matrix_* ops. (10sep2016).
+
 #define TF_GRAPH_DEF_VERSION_MIN_PRODUCER 0
 #define TF_GRAPH_DEF_VERSION_MIN_CONSUMER 0
-#define TF_GRAPH_DEF_VERSION 12
+#define TF_GRAPH_DEF_VERSION 14
 
 // Checkpoint compatibility versions (the versions field in SavedSliceMeta).
 //
@@ -83,5 +86,13 @@ limitations under the License.
 #define TF_CHECKPOINT_VERSION_MIN_PRODUCER 0
 #define TF_CHECKPOINT_VERSION_MIN_CONSUMER 0
 #define TF_CHECKPOINT_VERSION 1
+
+/// Version query functions (defined in generated version_info.cc)
+
+// Host compiler version (declared elsewhere to be __VERSION__)
+extern const char* tf_compiler_version();
+// The git commit designator when tensorflow was built
+// If no git repository, this will be "internal".
+extern const char* tf_git_version();
 
 #endif  // TENSORFLOW_CORE_PUBLIC_VERSION_H_
