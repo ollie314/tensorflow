@@ -26,7 +26,7 @@ import os
 
 from google.protobuf.any_pb2 import Any
 
-from tensorflow.contrib.session_bundle import manifest_pb2
+from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.core.protobuf import saved_model_pb2
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
@@ -86,7 +86,7 @@ class SavedModelBuilder(object):
 
     self._export_dir = export_dir
     if not file_io.file_exists(export_dir):
-      file_io.create_dir(self._export_dir)
+      file_io.recursive_create_dir(self._export_dir)
 
     # Boolean to track whether variables and assets corresponding to the
     # SavedModel have been saved. Specifically, the first meta graph to be added
@@ -123,12 +123,12 @@ class SavedModelBuilder(object):
 
     Args:
       asset_filename: The filename of the asset to be added.
-      asset_tensor: The asset tensor used to populate the tensor binding of the
+      asset_tensor: The asset tensor used to populate the tensor info of the
           asset proto.
     """
-    asset_proto = manifest_pb2.AssetFile()
+    asset_proto = meta_graph_pb2.AssetFileDef()
     asset_proto.filename = asset_filename
-    asset_proto.tensor_binding.tensor_name = asset_tensor.name
+    asset_proto.tensor_info.name = asset_tensor.name
 
     asset_any_proto = Any()
     asset_any_proto.Pack(asset_proto)
@@ -152,7 +152,7 @@ class SavedModelBuilder(object):
         compat.as_bytes(constants.ASSETS_DIRECTORY))
 
     if not file_io.file_exists(assets_destination_dir):
-      file_io.create_dir(assets_destination_dir)
+      file_io.recursive_create_dir(assets_destination_dir)
 
     # Copy each asset from source path to destination path.
     for asset_source_filepath in asset_source_filepath_list:
@@ -315,7 +315,7 @@ class SavedModelBuilder(object):
       The path to which the SavedModel protocol buffer was written.
     """
     if not file_io.file_exists(self._export_dir):
-      file_io.create_dir(self._export_dir)
+      file_io.recursive_create_dir(self._export_dir)
 
     if as_text:
       path = os.path.join(

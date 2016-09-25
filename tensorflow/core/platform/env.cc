@@ -21,7 +21,6 @@ limitations under the License.
 #include "tensorflow/core/lib/gtl/stl_util.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/platform/env.h"
-#include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/protobuf.h"
 
 namespace tensorflow {
@@ -70,8 +69,9 @@ Status FileSystemRegistryImpl::GetRegisteredFileSystemSchemes(
 Env::Env() : file_system_registry_(new FileSystemRegistryImpl) {}
 
 Status Env::GetFileSystemForFile(const string& fname, FileSystem** result) {
-  string scheme = GetSchemeFromURI(fname);
-  FileSystem* file_system = file_system_registry_->Lookup(scheme);
+  StringPiece scheme, host, path;
+  ParseURI(fname, &scheme, &host, &path);
+  FileSystem* file_system = file_system_registry_->Lookup(scheme.ToString());
   if (!file_system) {
     return errors::Unimplemented("File system scheme ", scheme,
                                  " not implemented");
@@ -131,6 +131,47 @@ Status Env::GetChildren(const string& dir, std::vector<string>* result) {
   return fs->GetChildren(dir, result);
 }
 
+Status Env::GetMatchingPaths(const string& pattern,
+                             std::vector<string>* results) {
+  FileSystem* fs;
+  TF_RETURN_IF_ERROR(GetFileSystemForFile(pattern, &fs));
+  results->clear();
+  // Find the fixed prefix by looking for the first wildcard.
+  const string& fixed_prefix =
+      pattern.substr(0, pattern.find_first_of("*?[\\"));
+  std::vector<string> all_files;
+  string dir = io::Dirname(fixed_prefix).ToString();
+  if (dir.empty()) dir = ".";
+
+  // Setup a BFS to explore everything under dir.
+  std::deque<string> dir_q;
+  dir_q.push_back(dir);
+  Status ret;  // Status to return.
+  while (!dir_q.empty()) {
+    string current_dir = dir_q.front();
+    dir_q.pop_front();
+    std::vector<string> children;
+    Status s = fs->GetChildren(current_dir, &children);
+    ret.Update(s);
+    for (const string& child : children) {
+      const string child_path = io::JoinPath(current_dir, child);
+      // If the child is a directory add it to the queue.
+      if (fs->IsDirectory(child_path).ok()) {
+        dir_q.push_back(child_path);
+      }
+      all_files.push_back(child_path);
+    }
+  }
+
+  // Match all obtained files to the input pattern.
+  for (const auto& f : all_files) {
+    if (MatchPath(f, pattern)) {
+      results->push_back(f);
+    }
+  }
+  return ret;
+}
+
 Status Env::DeleteFile(const string& fname) {
   FileSystem* fs;
   TF_RETURN_IF_ERROR(GetFileSystemForFile(fname, &fs));
@@ -142,7 +183,7 @@ Status Env::RecursivelyCreateDir(const string& dirname) {
   TF_RETURN_IF_ERROR(GetFileSystemForFile(dirname, &fs));
   std::vector<StringPiece> sub_dirs;
   StringPiece remaining_dir(dirname);
-  while (!fs->FileExists(remaining_dir.ToString())) {
+  while (!fs->FileExists(remaining_dir.ToString()) && !remaining_dir.empty()) {
     // Basename returns "" for / ending dirs.
     if (!remaining_dir.ends_with("/")) {
       sub_dirs.push_back(io::Basename(remaining_dir));

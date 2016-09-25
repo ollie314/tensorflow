@@ -369,6 +369,13 @@ extern void TF_AddInputList(TF_OperationDescription* desc,
 extern void TF_AddControlInput(TF_OperationDescription* desc,
                                TF_Operation* input);
 
+// Request that `desc` be co-located on the device where `op`
+// is placed.
+//
+// Use of this is discouraged since the implementation of device placement is
+// subject to change. Primarily intended for internal libraries
+extern void TF_ColocateWith(TF_OperationDescription* desc, TF_Operation* op);
+
 // Call some TF_SetAttr*() function for every attr that is not
 // inferred from an input and doesn't have a default value you wish to
 // keep.
@@ -732,19 +739,35 @@ extern TF_Operation* TF_GraphOperationByName(TF_Graph* graph,
 // }
 extern TF_Operation* TF_GraphNextOperation(TF_Graph* graph, size_t* pos);
 
-// Note: The following two functions may fail on very large protos in the
-// future.
-
+// Write out a serialized representation of `graph` (as a GraphDef protocol
+// message) to `output_graph_def`.
+//
+// May fail on very large graphs in the future.
 extern void TF_GraphToGraphDef(TF_Graph* graph, TF_Buffer* output_graph_def,
                                TF_Status* status);
+
+// TF_ImportGraphDefOptions holds options that can be passed to
+// TF_GraphImportGraphDef.
+typedef struct TF_ImportGraphDefOptions TF_ImportGraphDefOptions;
+
+extern TF_ImportGraphDefOptions* TF_NewImportGraphDefOptions();
+extern void TF_DeleteImportGraphDefOptions(TF_ImportGraphDefOptions* opts);
+
+// Set the prefix to be prepended to the names of nodes in `graph_def` that will
+// be imported into `graph`.
+extern void TF_ImportGraphDefOptionsSetPrefix(TF_ImportGraphDefOptions* opts,
+                                              const char* prefix);
+
+// Import the graph serialized in `graph_def` into `graph`.
+extern void TF_GraphImportGraphDef(TF_Graph* graph, const TF_Buffer* graph_def,
+                                   const TF_ImportGraphDefOptions* options,
+                                   TF_Status* status);
+
+// Note: The following function may fail on very large protos in the future.
 
 extern void TF_OperationToNodeDef(TF_Operation* oper,
                                   TF_Buffer* output_node_def,
                                   TF_Status* status);
-
-// TODO(cwhipkey): Query shape for operation outputs.
-
-// TODO(ashankar): Import GraphDef into TF_Graph.
 
 // TODO(andydavis): Function to add gradients to a graph.
 

@@ -1420,7 +1420,7 @@ Returns x / y element-wise.
 ##### Args:
 
 
-*  <b>`x`</b>: A `Tensor`. Must be one of the following types: `half`, `float32`, `float64`, `uint8`, `int8`, `int16`, `int32`, `int64`, `complex64`, `complex128`.
+*  <b>`x`</b>: A `Tensor`. Must be one of the following types: `half`, `float32`, `float64`, `uint8`, `int8`, `uint16`, `int16`, `int32`, `int64`, `complex64`, `complex128`.
 *  <b>`y`</b>: A `Tensor`. Must have the same type as `x`.
 *  <b>`name`</b>: A name for the operation (optional).
 
@@ -1840,7 +1840,7 @@ Returns x / y element-wise.
 ##### Args:
 
 
-*  <b>`x`</b>: A `Tensor`. Must be one of the following types: `half`, `float32`, `float64`, `uint8`, `int8`, `int16`, `int32`, `int64`, `complex64`, `complex128`.
+*  <b>`x`</b>: A `Tensor`. Must be one of the following types: `half`, `float32`, `float64`, `uint8`, `int8`, `uint16`, `int16`, `int32`, `int64`, `complex64`, `complex128`.
 *  <b>`y`</b>: A `Tensor`. Must have the same type as `x`.
 *  <b>`name`</b>: A name for the operation (optional).
 
@@ -3078,13 +3078,12 @@ Returns a list of integers or `None` for each dimension.
 
 ##### Returns:
 
-  `None` if shape is unknown; otherwise, a list of integers or `None` for
-  each dimension.
+  A list of integers or `None` for each dimension.
 
 ##### Raises:
 
 
-*  <b>`ValueError`</b>: if `self` is completely unknown.
+*  <b>`ValueError`</b>: If `self` is an unknown shape with an unknown rank.
 
 
 - - -
@@ -3632,7 +3631,7 @@ Dimensions are summed as follows:
 
 ##### Returns:
 
-  A Dimension whose value is the sum of `self` and `other`.
+  A Dimension whose value is the product of `self` and `other`.
 
 
 - - -
@@ -3988,13 +3987,4 @@ Return a string representation of this `DeviceSpec`.
   /job:<name>/replica:<id>/task:<id>/device:<device_type>:<id>.
 
 
-
-- - -
-
-### `class tf.bytes` {#bytes}
-
-str(object='') -> string
-
-Return a nice string representation of the object.
-If the argument is a string, the return value is the same object.
 

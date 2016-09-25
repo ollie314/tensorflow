@@ -67,22 +67,18 @@ class FileIO(object):
       if not self._read_check_passed:
         raise errors.PermissionDeniedError(None, None,
                                            "File isn't open for reading")
-      self._read_buf = pywrap_tensorflow.CreateBufferedInputStream(
-          compat.as_bytes(self.__name), 1024 * 512)
-      if not self._read_buf:
-        raise errors.InternalError(None, None,
-                                   "Could not open file for streaming")
+      with errors.raise_exception_on_not_ok_status() as status:
+        self._read_buf = pywrap_tensorflow.CreateBufferedInputStream(
+            compat.as_bytes(self.__name), 1024 * 512, status)
 
   def _prewrite_check(self):
     if not self._writable_file:
       if not self._write_check_passed:
         raise errors.PermissionDeniedError(None, None,
                                            "File isn't open for writing")
-      self._writable_file = pywrap_tensorflow.CreateWritableFile(
-          compat.as_bytes(self.__name))
-      if not self._writable_file:
-        raise errors.InternalError(None, None,
-                                   "Could not open file for writing")
+      with errors.raise_exception_on_not_ok_status() as status:
+        self._writable_file = pywrap_tensorflow.CreateWritableFile(
+            compat.as_bytes(self.__name), status)
 
   def size(self):
     """Returns the size of the file."""
@@ -141,7 +137,12 @@ class FileIO(object):
     return self.next()
 
   def flush(self):
-    """Flushes the Writable file to disk."""
+    """Flushes the Writable file.
+
+    This only ensures that the data has made its way out of the process without
+    any guarantees on whether it's written to disk. This means that the
+    data would survive an application crash but not necessarily an OS crash.
+    """
     if self._writable_file:
       with errors.raise_exception_on_not_ok_status() as status:
         pywrap_tensorflow.FlushWritableFile(self._writable_file, status)
