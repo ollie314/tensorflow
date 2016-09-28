@@ -41,9 +41,9 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
 
   native.new_http_archive(
     name = "farmhash_archive",
-    url = "http://github.com/google/farmhash/archive/34c13ddfab0e35422f4c3979f360635a8c050260.zip",
-    sha256 = "e3d37a59101f38fd58fb799ed404d630f0eee18bfc2a2433910977cc8fea9c28",
-    strip_prefix = "farmhash-34c13ddfab0e35422f4c3979f360635a8c050260/src",
+    url = "http://github.com/google/farmhash/archive/71a777924015693c69bc3c8c6492fb8d5372c636.zip",
+    sha256 = "99190108fb96a5e38e183f6a23fb7742948214fc96a746a50c79eb09a255a298",
+    strip_prefix = "farmhash-71a777924015693c69bc3c8c6492fb8d5372c636/src",
     build_file = str(Label("//:farmhash.BUILD")),
   )
 
@@ -98,9 +98,9 @@ def tf_workspace(path_prefix = "", tf_repo_name = ""):
 
   native.http_archive(
     name = "protobuf",
-    url = "http://github.com/google/protobuf/archive/v3.0.2.tar.gz",
-    sha256 = "b700647e11556b643ccddffd1f41d8cb7704ed02090af54cc517d44d912d11c1",
-    strip_prefix = "protobuf-3.0.2",
+    url = "http://github.com/google/protobuf/archive/v3.1.0.tar.gz",
+    sha256 = "0a0ae63cbffc274efb573bdde9a253e3f32e458c41261df51c5dbc5ad541e8f7",
+    strip_prefix = "protobuf-3.1.0",
   )
 
   native.new_http_archive(
