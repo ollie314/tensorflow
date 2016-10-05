@@ -491,7 +491,7 @@ class BaseEstimator(
         string key to `Tensor` and targets is a `Tensor` that's currently not
         used (and so can be `None`).
       input_feature_key: Only used if `use_deprecated_input_fn` is false. String
-        key into the features dict returned by `input_fn` that corresponds to
+        key into the features dict returned by `input_fn` that corresponds toa 
         the raw `Example` strings `Tensor` that the exported model will take as
         input. Can only be `None` if you're using a custom `signature_fn` that
         does not use the first arg (examples).
@@ -699,6 +699,7 @@ class BaseEstimator(
           supervisor_is_chief=supervisor_is_chief,
           supervisor_master=self._config.master,
           supervisor_save_model_secs=self._config.save_checkpoints_secs,
+          supervisor_save_model_steps=self._config.save_checkpoints_steps,
           supervisor_save_summaries_steps=self._config.save_summary_steps,
           keep_checkpoint_max=self._config.keep_checkpoint_max,
           feed_fn=feed_fn,
