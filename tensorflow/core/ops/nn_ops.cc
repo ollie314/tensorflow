@@ -1444,7 +1444,7 @@ Computes rectified linear 6 gradients for a Relu6 operation.
 gradients: The backpropagated gradients to the corresponding Relu6 operation.
 features: The features passed as input to the corresponding Relu6 operation.
 backprops: The gradients:
-  `gradients * features * (features > 0) * (features < 6)`.
+  `gradients * (features > 0) * (features < 6)`.
 )doc");
 
 REGISTER_OP("Elu")
@@ -1835,7 +1835,7 @@ pooling_ratio: Pooling ratio for each dimension of `value`, currently only
   respectively.
 pseudo_random: When set to True, generates the pooling sequence in a
   pseudorandom fashion, otherwise, in a random fashion. Check paper [Benjamin
-  Graham, Fractional Max-Pooling] (http://arxiv.org/abs/1412.6071) for
+  Graham, Fractional Max-Pooling](http://arxiv.org/abs/1412.6071) for
   difference between pseudorandom and random.
 overlapping: When set to True, it means when pooling, the values at the boundary
   of adjacent pooling cells are used by both cells. For example:
@@ -1925,7 +1925,7 @@ pooling_ratio: Pooling ratio for each dimension of `value`, currently only
   respectively.
 pseudo_random: When set to True, generates the pooling sequence in a
   pseudorandom fashion, otherwise, in a random fashion. Check paper [Benjamin
-  Graham, Fractional Max-Pooling] (http://arxiv.org/abs/1412.6071) for
+  Graham, Fractional Max-Pooling](http://arxiv.org/abs/1412.6071) for
   difference between pseudorandom and random.
 overlapping: When set to True, it means when pooling, the values at the boundary
   of adjacent pooling cells are used by both cells. For example:
