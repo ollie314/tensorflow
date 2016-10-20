@@ -10,6 +10,7 @@ licenses(["notice"])  # Apache 2.0
 
 exports_files(["LICENSE"])
 
+load("//tensorflow:tensorflow.bzl", "if_not_windows")
 load("//tensorflow:tensorflow.bzl", "tf_cuda_library")
 load("//tensorflow:tensorflow.bzl", "tf_gen_op_wrapper_py")
 load("//tensorflow:tensorflow.bzl", "tf_py_test")
@@ -39,8 +40,11 @@ py_library(
         ":platform_test",
         ":summary",
         ":training",
+        ":ops",
+        "//tensorflow/python/debug:debug_py",
+    ] + if_not_windows([
         "//tensorflow/contrib:contrib_py",
-    ],
+    ]),
 )
 
 py_library(
@@ -1417,7 +1421,7 @@ cuda_py_test(
 
 cuda_py_test(
     name = "gradient_checker_test",
-    size = "small",
+    size = "medium",
     srcs = ["ops/gradient_checker_test.py"],
     additional_deps = [
         ":array_ops",
@@ -2145,6 +2149,33 @@ py_binary(
     deps = [
         ":docs",
         "//tensorflow:tensorflow_py",
+    ],
+)
+
+# -----------------------------------------------------------------------------
+# Quantization
+
+py_test(
+    name = "dequantize_op_test",
+    size = "small",
+    srcs = ["ops/dequantize_op_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":ops",
+        "//tensorflow:tensorflow_py",
+        "//tensorflow/python:framework_test_lib",
+    ],
+)
+
+py_test(
+    name = "quantized_conv_ops_test",
+    size = "small",
+    srcs = ["ops/quantized_conv_ops_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":ops",
+        "//tensorflow:tensorflow_py",
+        "//tensorflow/python:framework_test_lib",
     ],
 )
 
