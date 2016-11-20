@@ -48,10 +48,15 @@ export interface EmbeddingInfo {
   sprite?: SpriteMetadata;
 }
 
-/** Matches the json format of `projector_config.proto` */
+/**
+ * Matches the json format of `projector_config.proto`
+ * This should be kept in sync with the code in vz-projector-data-panel which
+ * holds a template for users to build a projector config JSON object from the
+ * projector UI.
+ */
 export interface ProjectorConfig {
   embeddings: EmbeddingInfo[];
-  modelCheckpointPath: string;
+  modelCheckpointPath?: string;
 }
 
 export type ServingMode = 'demo' | 'server' | 'proto';
@@ -276,7 +281,7 @@ export function retrieveSpriteAndMetadataInfo(metadataPath: string,
       logging.setModalMessage('Fetching metadata...', METADATA_MSG_ID);
       d3.text(metadataPath, (err: any, rawMetadata: string) => {
         if (err) {
-          logging.setModalMessage('Error: ' + err.responseText);
+          logging.setErrorMessage(err.responseText);
           reject(err);
           return;
         }

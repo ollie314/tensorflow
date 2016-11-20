@@ -692,7 +692,7 @@ Returns and create (if necessary) the global step variable.
 
 ### `tf.contrib.framework.get_local_variables(scope=None, suffix=None)` {#get_local_variables}
 
-Gets the list of model variables, filtered by scope and/or suffix.
+Gets the list of local variables, filtered by scope and/or suffix.
 
 ##### Args:
 
@@ -812,7 +812,8 @@ Gets the list of variables, filtered by scope and/or suffix.
 ##### Args:
 
 
-*  <b>`scope`</b>: an optional scope for filtering the variables to return.
+*  <b>`scope`</b>: an optional scope for filtering the variables to return. Can be a
+    variable scope or a string.
 *  <b>`suffix`</b>: an optional suffix for filtering the variables to return.
 *  <b>`collection`</b>: in which collection search for. Defaults to
     `GraphKeys.GLOBAL_VARIABLES`.
